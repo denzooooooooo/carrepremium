@@ -1,0 +1,65 @@
+# FONCTIONNALITÉS RESTANTES À AJOUTER
+
+## ✅ DÉJÀ IMPLÉMENTÉ (100%)
+- Emails automatiques
+- Export Excel/CSV
+- Génération PDF
+- Nettoyage données
+- Intégration Amadeus
+- Authentification
+- Paiements
+- Points fidélité
+- Codes promo
+- Panel admin complet
+
+## ❌ FONCTIONNALITÉS OPTIONNELLES NON IMPLÉMENTÉES
+
+### Option B - Comptabilité Avancée (4-5h)
+- Bilan mensuel/annuel
+- Compte de résultat
+- Journal des ventes
+- Rapports TVA
+- Gestion trésorerie
+- Analytique financière
+
+### Option C - Fidélité Avancée (3-4h)
+- Niveaux VIP (Bronze, Silver, Gold, Platinum)
+- Catalogue récompenses
+- Gamification (badges, défis)
+- Classements
+
+### Option D - Webhooks (3h)
+- Webhooks sortants
+- Intégrations tierces (Zapier, Slack)
+- Logs webhooks
+
+## 🎯 AMÉLIORATIONS RECOMMANDÉES
+
+### Sécurité (2-3h)
+- 2FA admin
+- Rate limiting avancé
+- Audit logs
+- Détection fraude
+
+### Performance (2-3h)
+- Cache Redis
+- Queue jobs
+- Optimisation SQL
+- CDN images
+
+### Monitoring (2h)
+- Métriques temps réel
+- Alertes erreurs
+- Uptime monitoring
+
+### UX Admin (2h)
+- Recherche globale
+- Filtres avancés
+- Actions masse
+- Mode sombre
+
+## TOTAL: 23-27h
+
+## RECOMMANDATION
+Le système actuel est PRÊT POUR PRODUCTION.
+Les améliorations sont optionnelles selon besoins business.

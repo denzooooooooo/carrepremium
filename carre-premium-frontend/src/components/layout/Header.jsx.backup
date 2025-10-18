@@ -1,0 +1,177 @@
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { useTheme } from '../../contexts/ThemeContext';
+import { useCurrency } from '../../contexts/CurrencyContext';
+import { useCart } from '../../contexts/CartContext';
+
+const Header = () => {
+  const { language, setLanguage, t } = useLanguage();
+  const { theme, toggleTheme } = useTheme();
+  const { currency, setCurrency, currencies } = useCurrency();
+  const { getCartCount } = useCart();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  return (
+    <header className="bg-white dark:bg-gray-900 shadow-md sticky top-0 z-50 transition-colors">
+      <div className="container-custom">
+        <div className="flex items-center justify-between h-20">
+          {/* Logo */}
+          <Link to="/" className="flex items-center group">
+            <span className="text-3xl font-montserrat font-bold gradient-text group-hover:scale-105 transition-transform">
+              Carré Premium
+            </span>
+          </Link>
+
+          {/* Desktop Navigation */}
+          <nav className="hidden lg:flex items-center space-x-8">
+            <Link 
+              to="/flights" 
+              className="text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-primary font-medium transition-colors"
+            >
+              ✈️ {t('flights')}
+            </Link>
+            <Link 
+              to="/events" 
+              className="text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-primary font-medium transition-colors"
+            >
+              🎫 {t('events')}
+            </Link>
+            <Link 
+              to="/packages" 
+              className="text-gray-700 dark:text-gray-300 hover:text-primary dark:hover:text-primary font-medium transition-colors"
+            >
+              🎒 {t('packages')}
+            </Link>
+          </nav>
+
+          {/* Actions */}
+          <div className="flex items-center space-x-4">
+            {/* Language Switcher */}
+            <select 
+              value={language} 
+              onChange={(e) => setLanguage(e.target.value)}
+              className="hidden md:block px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="fr">🇫🇷 FR</option>
+              <option value="en">🇬🇧 EN</option>
+            </select>
+
+            {/* Currency Switcher */}
+            <select 
+              value={currency} 
+              onChange={(e) => setCurrency(e.target.value)}
+              className="hidden md:block px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              {currencies.map((curr) => (
+                <option key={curr.code} value={curr.code}>
+                  {curr.symbol} {curr.code}
+                </option>
+              ))}
+            </select>
+
+            {/* Theme Toggle */}
+            <button 
+              onClick={toggleTheme}
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              aria-label="Toggle theme"
+            >
+              {theme === 'light' ? '🌙' : '☀️'}
+            </button>
+
+            {/* Cart */}
+            <Link 
+              to="/cart" 
+              className="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+              <span className="text-2xl">🛒</span>
+              {getCartCount() > 0 && (
+                <span className="absolute -top-1 -right-1 bg-primary text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold animate-scale-in">
+                  {getCartCount()}
+                </span>
+              )}
+            </Link>
+
+            {/* Account */}
+            <Link 
+              to="/account" 
+              className="hidden md:block btn btn-primary"
+            >
+              👤 {t('account')}
+            </Link>
+
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="lg:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+            >
+              {mobileMenuOpen ? '✕' : '☰'}
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="lg:hidden py-4 border-t border-gray-200 dark:border-gray-700 animate-slide-down">
+            <nav className="flex flex-col space-y-4">
+              <Link 
+                to="/flights" 
+                className="text-gray-700 dark:text-gray-300 hover:text-primary font-medium"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                ✈️ {t('flights')}
+              </Link>
+              <Link 
+                to="/events" 
+                className="text-gray-700 dark:text-gray-300 hover:text-primary font-medium"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                🎫 {t('events')}
+              </Link>
+              <Link 
+                to="/packages" 
+                className="text-gray-700 dark:text-gray-300 hover:text-primary font-medium"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                🎒 {t('packages')}
+              </Link>
+              <Link 
+                to="/account" 
+                className="text-gray-700 dark:text-gray-300 hover:text-primary font-medium"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                👤 {t('account')}
+              </Link>
+              
+              <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex gap-4">
+                  <select 
+                    value={language} 
+                    onChange={(e) => setLanguage(e.target.value)}
+                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+                  >
+                    <option value="fr">🇫🇷 Français</option>
+                    <option value="en">🇬🇧 English</option>
+                  </select>
+                  <select 
+                    value={currency} 
+                    onChange={(e) => setCurrency(e.target.value)}
+                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+                  >
+                    {currencies.map((curr) => (
+                      <option key={curr.code} value={curr.code}>
+                        {curr.symbol} {curr.code}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </nav>
+          </div>
+        )}
+      </div>
+    </header>
+  );
+};
+
+export default Header;
