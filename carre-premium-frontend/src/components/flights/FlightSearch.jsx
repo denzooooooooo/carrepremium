@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useCurrency } from '../../contexts/CurrencyContext';
-import amadeusService from '../../services/amadeusService';
-import { 
-  JetIcon, 
-  CalendarIcon, 
-  UsersIcon, 
+import { flightService } from '../../services/api';
+import {
+  JetIcon,
+  CalendarIcon,
+  UsersIcon,
   CheckCircleIcon,
   LocationIcon,
   ArrowRightIcon
@@ -14,17 +14,15 @@ import {
 const FlightSearch = ({ onSearchResults, onLoading }) => {
   const { t } = useLanguage();
   const { currency } = useCurrency();
-  
+
   const [searchParams, setSearchParams] = useState({
-    origin: '',
-    destination: '',
-    departureDate: '',
-    returnDate: '',
     adults: 1,
     children: 0,
     infants: 0,
     travelClass: 'ECONOMY',
-    nonStop: false
+    nonStop: false,
+    departureDate: '',
+    returnDate: ''
   });
 
   const [originSuggestions, setOriginSuggestions] = useState([]);
@@ -35,90 +33,53 @@ const FlightSearch = ({ onSearchResults, onLoading }) => {
   const [error, setError] = useState(null);
   const [selectedOrigin, setSelectedOrigin] = useState(null);
   const [selectedDestination, setSelectedDestination] = useState(null);
-  const [tripType, setTripType] = useState('roundtrip'); // roundtrip ou oneway
-
-  // Aéroports populaires pour suggestions rapides
-  const popularAirports = [
-    { iataCode: 'ABJ', name: 'Félix Houphouët-Boigny', address: { cityName: 'Abidjan', countryName: 'Côte d\'Ivoire' } },
-    { iataCode: 'CDG', name: 'Charles de Gaulle', address: { cityName: 'Paris', countryName: 'France' } },
-    { iataCode: 'LHR', name: 'Heathrow', address: { cityName: 'Londres', countryName: 'Royaume-Uni' } },
-    { iataCode: 'DXB', name: 'Dubai International', address: { cityName: 'Dubaï', countryName: 'EAU' } },
-    { iataCode: 'JFK', name: 'John F. Kennedy', address: { cityName: 'New York', countryName: 'USA' } },
-    { iataCode: 'IST', name: 'Istanbul', address: { cityName: 'Istanbul', countryName: 'Turquie' } },
-    { iataCode: 'ADD', name: 'Addis Ababa Bole', address: { cityName: 'Addis Ababa', countryName: 'Éthiopie' } },
-    { iataCode: 'DOH', name: 'Hamad International', address: { cityName: 'Doha', countryName: 'Qatar' } },
-    { iataCode: 'FRA', name: 'Frankfurt', address: { cityName: 'Francfort', countryName: 'Allemagne' } },
-    { iataCode: 'AMS', name: 'Schiphol', address: { cityName: 'Amsterdam', countryName: 'Pays-Bas' } },
-    { iataCode: 'MAD', name: 'Adolfo Suárez Madrid-Barajas', address: { cityName: 'Madrid', countryName: 'Espagne' } },
-    { iataCode: 'BCN', name: 'Barcelona-El Prat', address: { cityName: 'Barcelone', countryName: 'Espagne' } },
-    { iataCode: 'FCO', name: 'Leonardo da Vinci-Fiumicino', address: { cityName: 'Rome', countryName: 'Italie' } },
-    { iataCode: 'LOS', name: 'Murtala Muhammed', address: { cityName: 'Lagos', countryName: 'Nigeria' } },
-    { iataCode: 'ACC', name: 'Kotoka International', address: { cityName: 'Accra', countryName: 'Ghana' } },
-    { iataCode: 'DKR', name: 'Blaise Diagne', address: { cityName: 'Dakar', countryName: 'Sénégal' } },
-    { iataCode: 'NBO', name: 'Jomo Kenyatta', address: { cityName: 'Nairobi', countryName: 'Kenya' } },
-    { iataCode: 'CPT', name: 'Cape Town International', address: { cityName: 'Le Cap', countryName: 'Afrique du Sud' } },
-    { iataCode: 'JNB', name: 'O.R. Tambo', address: { cityName: 'Johannesburg', countryName: 'Afrique du Sud' } },
-    { iataCode: 'CAI', name: 'Cairo International', address: { cityName: 'Le Caire', countryName: 'Égypte' } }
-  ];
+  const [tripType, setTripType] = useState('roundtrip');
 
   // Recherche d'aéroports
   const searchAirports = async (keyword, type) => {
-    if (keyword.length < 2) {
-      if (type === 'origin') setOriginSuggestions([]);
-      else setDestinationSuggestions([]);
+    if (keyword.length < 3) {
+      if (type === 'origin') {
+        setShowOriginSuggestions(false);
+        setOriginSuggestions([]);
+      } else {
+        setShowDestinationSuggestions(false);
+        setDestinationSuggestions([]);
+      }
       return;
     }
 
-    const searchTerm = keyword.toLowerCase();
-    
-    const localResults = popularAirports.filter(airport => 
-      airport.iataCode.toLowerCase().includes(searchTerm) ||
-      airport.name.toLowerCase().includes(searchTerm) ||
-      airport.address.cityName.toLowerCase().includes(searchTerm) ||
-      airport.address.countryName.toLowerCase().includes(searchTerm)
-    );
-
     try {
-      const response = await amadeusService.searchAirports(keyword);
-      const apiResults = response.data?.data || [];
-      
-      const combinedResults = [...localResults];
-      apiResults.forEach(apiAirport => {
-        if (!combinedResults.find(a => a.iataCode === apiAirport.iataCode)) {
-          combinedResults.push(apiAirport);
-        }
-      });
-      
+      const response = await flightService.getAirports(keyword);
+      const airportList = response.data || []; // <-- important !
+      console.log(`🛫 Aéroports trouvés pour "${keyword}":`, airportList);
+
       if (type === 'origin') {
-        setOriginSuggestions(combinedResults.slice(0, 10));
-        setShowOriginSuggestions(true);
+        setOriginSuggestions(airportList);
+        setShowOriginSuggestions(airportList.length > 0);
       } else {
-        setDestinationSuggestions(combinedResults.slice(0, 10));
-        setShowDestinationSuggestions(true);
+        setDestinationSuggestions(airportList);
+        setShowDestinationSuggestions(airportList.length > 0);
       }
-    } catch (error) {
+    } catch (err) {
+      console.error('Erreur recherche aéroports:', err);
       if (type === 'origin') {
-        setOriginSuggestions(localResults.slice(0, 10));
-        setShowOriginSuggestions(true);
+        setOriginSuggestions([]);
       } else {
-        setDestinationSuggestions(localResults.slice(0, 10));
-        setShowDestinationSuggestions(true);
+        setDestinationSuggestions([]);
       }
     }
   };
 
+
   const selectAirport = (airport, type) => {
-    const iataCode = airport.iataCode;
-    const displayText = `${iataCode} - ${airport.address?.cityName || airport.name}`;
-    
+    const displayText = `${airport.name} (${airport.iataCode})`;
+
     if (type === 'origin') {
       setSelectedOrigin(airport);
-      setSearchParams({ ...searchParams, origin: iataCode });
       setShowOriginSuggestions(false);
       document.getElementById('origin-input').value = displayText;
     } else {
       setSelectedDestination(airport);
-      setSearchParams({ ...searchParams, destination: iataCode });
       setShowDestinationSuggestions(false);
       document.getElementById('destination-input').value = displayText;
     }
@@ -127,40 +88,78 @@ const FlightSearch = ({ onSearchResults, onLoading }) => {
   const handleSearch = async (e) => {
     e.preventDefault();
     setError(null);
-
-    const originCode = searchParams.origin.trim().toUpperCase().substring(0, 3);
-    const destinationCode = searchParams.destination.trim().toUpperCase().substring(0, 3);
-
-    if (originCode.length !== 3 || destinationCode.length !== 3) {
-      setError('Veuillez sélectionner un aéroport de départ et d\'arrivée valide dans la liste');
-      return;
-    }
-
     setIsSearching(true);
     if (onLoading) onLoading(true);
 
     try {
-      const results = await amadeusService.searchFlights({
+      // ✅ Codes IATA sécurisés
+      const originCode = selectedOrigin?.iataCode?.toUpperCase() ?? '';
+      const destinationCode = selectedDestination?.iataCode?.toUpperCase() ?? '';
+
+      if (originCode.length !== 3 || destinationCode.length !== 3) {
+        setError('Veuillez sélectionner un aéroport de départ et d\'arrivée valide dans la liste.');
+        return;
+      }
+
+      // ✅ Dates
+      const departureDate = searchParams.departureDate;
+      const returnDate = searchParams.returnDate;
+
+      if (!departureDate) {
+        setError('Veuillez sélectionner une date de départ valide.');
+        return;
+      }
+      if (tripType === 'roundtrip' && (!returnDate || returnDate < departureDate)) {
+        setError('Veuillez sélectionner une date de retour valide.');
+        return;
+      }
+
+      // ✅ Passagers
+      const adults = Number(searchParams.adults);
+      const children = Number(searchParams.children || 0);
+      const infants = Number(searchParams.infants || 0);
+
+      if (adults < 1) {
+        setError('Au moins un adulte doit être sélectionné.');
+        return;
+      }
+
+      // ✅ Classe
+      const validClasses = ['ECONOMY', 'PREMIUM_ECONOMY', 'BUSINESS', 'FIRST'];
+      const travelClass = (searchParams.travelClass || 'ECONOMY').toUpperCase();
+      if (!validClasses.includes(travelClass)) {
+        setError('Veuillez sélectionner une classe de voyage valide.');
+        return;
+      }
+
+      // ✅ Construction du payload
+      const requestPayload = {
         origin: originCode,
         destination: destinationCode,
-        departureDate: searchParams.departureDate,
-        returnDate: tripType === 'roundtrip' ? searchParams.returnDate : undefined,
-        adults: searchParams.adults,
-        children: searchParams.children || 0,
-        infants: searchParams.infants || 0,
-        travelClass: searchParams.travelClass,
-        nonStop: searchParams.nonStop,
-        currencyCode: currency.code
-      });
+        departureDate,
+        adults,
+        children,
+        infants,
+        travelClass,
+        nonStop: !!searchParams.nonStop,
+        currencyCode: currency.code,
+        ...(tripType === 'roundtrip' && { returnDate })
+      };
 
-      if (onSearchResults) {
-        onSearchResults(results);
-      }
+      // 🔍 Logs pour debug
+      console.log('--- Recherche de vols ---');
+      console.log('Payload envoyé à l\'API:', requestPayload);
+
+      const results = await flightService.searchFlights(requestPayload);
+
+      console.log('Résultats reçus:', results);
+      if (onSearchResults) onSearchResults(results);
+
     } catch (error) {
-      console.error('Search error:', error);
-      const errorMessage = error.response?.data?.message || 
-                          error.response?.data?.error ||
-                          'Erreur lors de la recherche de vols. Veuillez réessayer.';
+      console.error('Erreur recherche vols:', error);
+      const errorMessage = error.response?.data?.message ||
+        error.response?.data?.error ||
+        'Erreur lors de la recherche de vols. Veuillez réessayer.';
       setError(errorMessage);
     } finally {
       setIsSearching(false);
@@ -192,11 +191,10 @@ const FlightSearch = ({ onSearchResults, onLoading }) => {
         <button
           type="button"
           onClick={() => setTripType('roundtrip')}
-          className={`flex-1 py-4 px-6 rounded-2xl font-bold transition-all duration-300 ${
-            tripType === 'roundtrip'
+          className={`flex-1 py-4 px-6 rounded-2xl font-bold transition-all duration-300 ${tripType === 'roundtrip'
               ? 'bg-gradient-to-r from-purple-600 to-amber-600 text-white shadow-xl scale-105'
               : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-          }`}
+            }`}
         >
           <div className="flex items-center justify-center space-x-2">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -211,11 +209,10 @@ const FlightSearch = ({ onSearchResults, onLoading }) => {
             setTripType('oneway');
             setSearchParams({ ...searchParams, returnDate: '' });
           }}
-          className={`flex-1 py-4 px-6 rounded-2xl font-bold transition-all duration-300 ${
-            tripType === 'oneway'
+          className={`flex-1 py-4 px-6 rounded-2xl font-bold transition-all duration-300 ${tripType === 'oneway'
               ? 'bg-gradient-to-r from-purple-600 to-amber-600 text-white shadow-xl scale-105'
               : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-          }`}
+            }`}
         >
           <div className="flex items-center justify-center space-x-2">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -248,15 +245,10 @@ const FlightSearch = ({ onSearchResults, onLoading }) => {
               <input
                 id="origin-input"
                 type="text"
-                defaultValue={searchParams.origin}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setSearchParams({ ...searchParams, origin: value });
-                  searchAirports(value, 'origin');
-                }}
-                onFocus={() => setShowOriginSuggestions(true)}
+                onChange={(e) => searchAirports(e.target.value, 'origin')}
+                onFocus={(e) => e.target.value && searchAirports(e.target.value, 'origin')}
                 onBlur={() => setTimeout(() => setShowOriginSuggestions(false), 200)}
-                placeholder="Ex: ABJ - Abidjan"
+                placeholder="Ex: Paris, ABJ, Abidjan..."
                 className="w-full pl-12 pr-4 py-4 border-2 border-gray-300 dark:border-gray-600 rounded-2xl focus:ring-4 focus:ring-purple-500/50 focus:border-purple-500 dark:bg-gray-700 dark:text-white text-lg font-semibold transition-all"
                 required
                 autoComplete="off"
@@ -267,7 +259,7 @@ const FlightSearch = ({ onSearchResults, onLoading }) => {
                 </svg>
               </div>
             </div>
-            
+
             {showOriginSuggestions && originSuggestions.length > 0 && (
               <div className="absolute z-50 w-full mt-2 bg-white dark:bg-gray-800 border-2 border-purple-200 dark:border-purple-700 rounded-2xl shadow-2xl max-h-80 overflow-y-auto">
                 {originSuggestions.map((airport, idx) => (
@@ -305,15 +297,10 @@ const FlightSearch = ({ onSearchResults, onLoading }) => {
               <input
                 id="destination-input"
                 type="text"
-                defaultValue={searchParams.destination}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setSearchParams({ ...searchParams, destination: value });
-                  searchAirports(value, 'destination');
-                }}
-                onFocus={() => setShowDestinationSuggestions(true)}
+                onChange={(e) => searchAirports(e.target.value, 'destination')}
+                onFocus={(e) => e.target.value && searchAirports(e.target.value, 'destination')}
                 onBlur={() => setTimeout(() => setShowDestinationSuggestions(false), 200)}
-                placeholder="Ex: CDG - Paris"
+                placeholder="Ex: Paris, CDG, New York..."
                 className="w-full pl-12 pr-4 py-4 border-2 border-gray-300 dark:border-gray-600 rounded-2xl focus:ring-4 focus:ring-amber-500/50 focus:border-amber-500 dark:bg-gray-700 dark:text-white text-lg font-semibold transition-all"
                 required
                 autoComplete="off"
@@ -325,7 +312,7 @@ const FlightSearch = ({ onSearchResults, onLoading }) => {
                 </svg>
               </div>
             </div>
-            
+
             {showDestinationSuggestions && destinationSuggestions.length > 0 && (
               <div className="absolute z-50 w-full mt-2 bg-white dark:bg-gray-800 border-2 border-amber-200 dark:border-amber-700 rounded-2xl shadow-2xl max-h-80 overflow-y-auto">
                 {destinationSuggestions.map((airport, idx) => (
@@ -395,7 +382,7 @@ const FlightSearch = ({ onSearchResults, onLoading }) => {
             <UsersIcon className="w-6 h-6 text-purple-600" />
             <h3 className="text-lg font-black text-gray-900 dark:text-white">Passagers & Classe</h3>
           </div>
-          
+
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">

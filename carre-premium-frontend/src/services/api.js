@@ -1,8 +1,9 @@
 import axios from 'axios';
 
 // Configuration de l'API
-const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000/api/v1';
+//const API_URL = process.env.REACT_APP_API_URL || 'http://192.168.1.14:8000/api';
 
+const API_URL = 'http://192.168.1.14:8000/api';
 // Créer une instance axios avec configuration par défaut
 const api = axios.create({
   baseURL: API_URL,
@@ -61,8 +62,8 @@ export const flightService = {
    */
   getAllFlights: async (page = 1, perPage = 20) => {
     try {
-      const response = await api.get('/flights', { 
-        params: { page, per_page: perPage } 
+      const response = await api.get('/flights', {
+        params: { page, per_page: perPage }
       });
       return response.data;
     } catch (error) {
@@ -87,7 +88,7 @@ export const flightService = {
   /**
    * Search flights
    */
-  searchFlights: async (searchData) => {
+  /* searchFlights: async (searchData) => {
     try {
       const response = await api.post('/flights/search', searchData);
       return response.data;
@@ -95,7 +96,27 @@ export const flightService = {
       console.error('Error searching flights:', error);
       throw error;
     }
+  }, */
+  searchFlights: async (searchData) => {
+    try {
+      console.log('📤 Envoi des paramètres:', searchData);
+
+      const response = await api.get('/flights/search', {
+        params: searchData  // ✅ Les paramètres doivent être dans "params"
+      });
+
+      console.log('📥 Réponse reçue:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error searching flights:', error);
+      if (error.response) {
+        console.error('📛 Error details:', error.response.data);
+        console.error('📛 Error status:', error.response.status);
+      }
+      throw error;
+    }
   },
+
 
   /**
    * Get popular flights
@@ -139,7 +160,7 @@ export const flightService = {
   /**
    * Get airports
    */
-  getAirports: async (search = '') => {
+  /* getAirports: async (search = '') => {
     try {
       const response = await api.get('/airports', { params: { search } });
       return response.data;
@@ -147,7 +168,17 @@ export const flightService = {
       console.error('Error fetching airports:', error);
       throw error;
     }
-  }
+  } */
+
+  getAirports: async (keyword = '') => {
+    try {
+      const response = await api.get('/flights/airports/search', { params: { keyword } });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching airports:', error);
+      throw error;
+    }
+  },
 };
 
 // ============================================
@@ -268,8 +299,8 @@ export const packageService = {
    */
   getAllPackages: async (page = 1, perPage = 20) => {
     try {
-      const response = await api.get('/packages', { 
-        params: { page, per_page: perPage } 
+      const response = await api.get('/packages', {
+        params: { page, per_page: perPage }
       });
       return response.data;
     } catch (error) {
@@ -483,12 +514,22 @@ export const bookingService = {
   /**
    * Create booking
    */
-  createBooking: async (data) => {
+  /* createBooking: async (data) => {
     try {
       const response = await api.post('/bookings', data);
       return response.data;
     } catch (error) {
       console.error('Error creating booking:', error);
+      throw error;
+    }
+  }, */
+
+  createBooking: async (data) => {
+    try {
+      const response = await api.post('/flights/book', data);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating flight booking:', error);
       throw error;
     }
   },
@@ -509,7 +550,7 @@ export const bookingService = {
   /**
    * Get user's bookings (authenticated)
    */
-  getMyBookings: async () => {
+  /* getMyBookings: async () => {
     try {
       const response = await api.get('/my-bookings');
       return response.data;
@@ -517,12 +558,22 @@ export const bookingService = {
       console.error('Error fetching my bookings:', error);
       throw error;
     }
+  }, */
+
+  getUserBookings: async () => {
+    try {
+      const response = await api.get('/flights/user-bookings');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching user bookings:', error);
+      throw error;
+    }
   },
 
   /**
    * Get booking details (authenticated)
    */
-  getBookingDetails: async (id) => {
+  /* getBookingDetails: async (id) => {
     try {
       const response = await api.get(`/my-bookings/${id}`);
       return response.data;
@@ -530,12 +581,22 @@ export const bookingService = {
       console.error('Error fetching booking details:', error);
       throw error;
     }
+  }, */
+
+  getFlightBookingDetails: async (amadeusOrderId) => {
+    try {
+      const response = await api.get(`/flights/booking-details/${amadeusOrderId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching flight booking details:', error);
+      throw error;
+    }
   },
 
   /**
    * Cancel booking (authenticated)
    */
-  cancelBooking: async (id, reason) => {
+  /* cancelBooking: async (id, reason) => {
     try {
       const response = await api.post(`/my-bookings/${id}/cancel`, {
         cancellation_reason: reason
@@ -545,7 +606,17 @@ export const bookingService = {
       console.error('Error cancelling booking:', error);
       throw error;
     }
-  }
+  } */
+
+  cancelBooking: async (bookingId) => {
+    try {
+      const response = await api.delete(`/flights/booking/${bookingId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error cancelling flight booking:', error);
+      throw error;
+    }
+  },
 };
 
 // ============================================
@@ -612,7 +683,7 @@ export const paymentService = {
       const response = await api.get(`/payments/history/${bookingId}`);
       return response.data;
     } catch (error) {
-      console.error('Error fetching payment history:', error);
+      console.error('Error fetching payment history:', error);  
       throw error;
     }
   }

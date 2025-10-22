@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useCurrency } from '../../contexts/CurrencyContext';
-import amadeusService from '../../services/amadeusService';
+import { flightService } from '../../services/api';
 
 const FlightResults = ({ results, loading }) => {
   const navigate = useNavigate();
@@ -18,7 +18,7 @@ const FlightResults = ({ results, loading }) => {
     );
   }
 
-  if (!results || !results.data || results.data.offers.length === 0) {
+  if (!results || !results.data?.length) {
     return (
       <div className="text-center py-20 bg-white rounded-2xl shadow-lg">
         <i className="fas fa-plane-slash text-6xl text-gray-400 mb-4"></i>
@@ -32,7 +32,69 @@ const FlightResults = ({ results, loading }) => {
     );
   }
 
-  const { offers, dictionaries } = results.data;
+
+
+  const offers = results.data; // ton tableau de vols
+
+  // Fonction pour formater un vol
+  const formatFlightOffer = (offer) => {
+    const itinerary = offer.itineraries[0];
+    const firstSegment = itinerary.segments[0];
+    const lastSegment = itinerary.segments[itinerary.segments.length - 1];
+
+    return {
+      id: offer.id,
+      airline: offer.validatingAirlineCodes?.[0] || 'Airline',
+      outbound: {
+        departure: {
+          airport: firstSegment.departure.iataCode,
+          time: firstSegment.departure.at
+        },
+        arrival: {
+          airport: lastSegment.arrival.iataCode,
+          time: lastSegment.arrival.at
+        },
+        duration: itinerary.duration,
+        stops: itinerary.segments.length - 1
+      },
+      inbound: offer.itineraries[1] ? {
+        departure: {
+          airport: offer.itineraries[1].segments[0].departure.iataCode,
+          time: offer.itineraries[1].segments[0].departure.at
+        },
+        arrival: {
+          airport: offer.itineraries[1].segments[offer.itineraries[1].segments.length - 1].arrival.iataCode,
+          time: offer.itineraries[1].segments[offer.itineraries[1].segments.length - 1].arrival.at
+        },
+        duration: offer.itineraries[1].duration,
+        stops: offer.itineraries[1].segments.length - 1
+      } : null,
+      price: {
+        total: parseFloat(offer.price.total),
+        currency: offer.price.currency
+      },
+      availableSeats: offer.numberOfBookableSeats || 9
+    };
+  };
+
+  // Fonction pour formater la durée
+  const formatDuration = (duration) => {
+    const match = duration.match(/PT(\d+H)?(\d+M)?/);
+    if (!match) return duration;
+
+    const hours = match[1] ? match[1].replace('H', 'h ') : '';
+    const minutes = match[2] ? match[2].replace('M', 'min') : '';
+    return `${hours}${minutes}`.trim();
+  };
+
+  // Fonction pour formater la date et l'heure
+  const formatDateTime = (isoString) => {
+    const date = new Date(isoString);
+    return {
+      time: date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+      date: date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })
+    };
+  };
 
   return (
     <div className="space-y-6">
@@ -43,7 +105,7 @@ const FlightResults = ({ results, loading }) => {
             {offers.length} {t('flightsFound', 'vol(s) trouvé(s)')}
           </h3>
           <p className="text-gray-600 mt-1">
-            {t('realTimeResults', 'Résultats en temps réel via Amadeus')}
+            {t('realTimeResults', 'Résultats en temps réel')}
           </p>
         </div>
         <div className="text-right">
@@ -58,15 +120,15 @@ const FlightResults = ({ results, loading }) => {
 
       {/* Liste des vols */}
       {offers.map((offer) => {
-        const formatted = amadeusService.formatFlightOffer(offer, dictionaries);
-        const departureDateTime = amadeusService.formatDateTime(formatted.outbound.departure.time);
-        const arrivalDateTime = amadeusService.formatDateTime(formatted.outbound.arrival.time);
-        
+        const formatted = formatFlightOffer(offer);
+        const departureDateTime = formatDateTime(formatted.outbound.departure.time);
+        const arrivalDateTime = formatDateTime(formatted.outbound.arrival.time);
+
         return (
           <div
             key={offer.id}
             className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer transform hover:-translate-y-1"
-            onClick={() => navigate(`/flight/${offer.id}`, { state: { offer, dictionaries } })}
+            onClick={() => navigate(`/flight/${offer.id}`, { state: { offer } })}
           >
             <div className="p-6">
               {/* Vol aller */}
@@ -86,12 +148,12 @@ const FlightResults = ({ results, loading }) => {
                         {departureDateTime.date}
                       </div>
                     </div>
-                    
+
                     {/* Durée et escales */}
                     <div className="flex-1 px-4">
                       <div className="text-center mb-2">
                         <span className="text-sm font-medium text-gray-600">
-                          {amadeusService.formatDuration(formatted.outbound.duration)}
+                          {formatDuration(formatted.outbound.duration)}
                         </span>
                       </div>
                       <div className="relative">
@@ -101,13 +163,13 @@ const FlightResults = ({ results, loading }) => {
                       </div>
                       <div className="text-center mt-2">
                         <span className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
-                          {formatted.outbound.stops === 0 
-                            ? t('direct', 'Direct') 
+                          {formatted.outbound.stops === 0
+                            ? t('direct', 'Direct')
                             : `${formatted.outbound.stops} ${t('stop(s)', 'escale(s)')}`}
                         </span>
                       </div>
                     </div>
-                    
+
                     {/* Arrivée */}
                     <div className="text-center">
                       <div className="text-3xl font-bold text-gray-800">
@@ -121,21 +183,21 @@ const FlightResults = ({ results, loading }) => {
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Compagnie aérienne */}
                   <div className="mt-4 flex items-center gap-2 text-gray-600">
                     <i className="fas fa-plane text-purple-600"></i>
-                    <span className="font-medium">{formatted.airlines}</span>
+                    <span className="font-medium">{formatted.airline}</span>
                   </div>
                 </div>
-                
+
                 {/* Prix et action */}
                 <div className="text-right ml-8 pl-8 border-l-2 border-gray-200">
                   <div className="mb-2">
                     <span className="text-sm text-gray-500">{t('from', 'À partir de')}</span>
                   </div>
                   <div className="text-4xl font-bold text-purple-600 mb-1">
-                    {Math.round(convertPrice(formatted.price.total)).toLocaleString()} 
+                    {Math.round(convertPrice(formatted.price.total)).toLocaleString()}
                   </div>
                   <div className="text-lg text-gray-600 mb-3">
                     {currency.symbol}
@@ -161,30 +223,30 @@ const FlightResults = ({ results, loading }) => {
                     {/* Départ retour */}
                     <div className="text-center">
                       <div className="text-2xl font-bold text-gray-800">
-                        {amadeusService.formatDateTime(formatted.inbound.departure.time).time}
+                        {formatDateTime(formatted.inbound.departure.time).time}
                       </div>
                       <div className="text-sm font-semibold text-gray-600">
                         {formatted.inbound.departure.airport}
                       </div>
                     </div>
-                    
+
                     {/* Durée retour */}
                     <div className="flex-1 px-4">
                       <div className="text-center text-sm text-gray-600">
-                        {amadeusService.formatDuration(formatted.inbound.duration)}
+                        {formatDuration(formatted.inbound.duration)}
                       </div>
                       <div className="border-t-2 border-gray-300 my-2"></div>
                       <div className="text-center text-xs text-gray-500">
-                        {formatted.inbound.stops === 0 
-                          ? t('direct', 'Direct') 
+                        {formatted.inbound.stops === 0
+                          ? t('direct', 'Direct')
                           : `${formatted.inbound.stops} ${t('stop(s)', 'escale(s)')}`}
                       </div>
                     </div>
-                    
+
                     {/* Arrivée retour */}
                     <div className="text-center">
                       <div className="text-2xl font-bold text-gray-800">
-                        {amadeusService.formatDateTime(formatted.inbound.arrival.time).time}
+                        {formatDateTime(formatted.inbound.arrival.time).time}
                       </div>
                       <div className="text-sm font-semibold text-gray-600">
                         {formatted.inbound.arrival.airport}
